@@ -1,0 +1,19 @@
+{
+  "name": "11ty-optimizely-contentgraph-poc",
+  "version": "1.0.0",
+  "description": "Proof of concept using 11ty with Optimizely Content Graph",
+  "scripts": {
+    "start": "eleventy --serve",
+    "build": "eleventy"
+  },
+  "keywords": ["11ty", "optimizely", "contentgraph", "static-site"],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "@11ty/eleventy": "^2.0.1"
+  },
+  "dependencies": {
+    "dotenv": "^16.3.1",
+    "node-fetch": "^2.7.0"
+  }
+}

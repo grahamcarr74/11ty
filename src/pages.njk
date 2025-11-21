@@ -1,0 +1,33 @@
+---
+layout: base.njk
+title: All Pages
+---
+
+<h1>All Pages</h1>
+
+{% if pages.length > 0 %}
+  <div class="page-grid">
+    {% for page in pages %}
+      <article class="card">
+        <h2>{{ page.Title or page.Heading or page._metadata.displayName }}</h2>
+        <p class="meta">
+          Type: {{ page._metadata.types | join(", ") }}<br>
+          Published: {{ page._metadata.published | readableDate }}<br>
+          Last Modified: {{ page._metadata.lastModified | readableDate }}
+        </p>
+        {% if page.MainBody %}
+          <div class="content">
+            {{ page.MainBody | safe }}
+          </div>
+        {% endif %}
+        {% if page._metadata.url.default %}
+          <p><strong>URL:</strong> <a href="{{ page._metadata.url.default }}">{{ page._metadata.url.default }}</a></p>
+        {% endif %}
+      </article>
+    {% endfor %}
+  </div>
+{% else %}
+  <p>No pages found. Make sure your Optimizely Content Graph is configured properly.</p>
+{% endif %}
+
+<p><a href="/" class="btn">← Back to Home</a></p>

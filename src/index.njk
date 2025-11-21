@@ -1,0 +1,55 @@
+---
+layout: base.njk
+title: Home - Optimizely + 11ty POC
+---
+
+<div class="hero">
+  <h1>Optimizely Content Graph + 11ty</h1>
+  <p>This is a proof of concept demonstrating how to use 11ty to build a static site with content from Optimizely SaaS CMS using Content Graph.</p>
+</div>
+
+<section class="content-section">
+  <h2>Recent Articles</h2>
+  {% if articles.length > 0 %}
+    <div class="article-grid">
+      {% for article in articles | slice(0, 3) %}
+        <article class="card">
+          <h3>{{ article.Title or article.Heading or article._metadata.displayName }}</h3>
+          <p class="meta">Published: {{ article._metadata.published | readableDate }}</p>
+          {% if article.Summary %}
+            <p>{{ article.Summary }}</p>
+          {% elif article.MainBody %}
+            <p>{{ article.MainBody | truncate(150) }}</p>
+          {% endif %}
+          {% if article._metadata.url.default %}
+            <a href="{{ article._metadata.url.default }}" class="read-more">Read more →</a>
+          {% endif %}
+        </article>
+      {% endfor %}
+    </div>
+    <p><a href="/articles/" class="btn">View All Articles →</a></p>
+  {% else %}
+    <p>No articles found. Configure your Optimizely Content Graph credentials to fetch content.</p>
+  {% endif %}
+</section>
+
+<section class="content-section">
+  <h2>Pages</h2>
+  {% if pages.length > 0 %}
+    <ul class="page-list">
+      {% for page in pages %}
+        <li>
+          <strong>{{ page.Title or page.Heading or page._metadata.displayName }}</strong>
+          {% if page._metadata.url.default %}
+            - <a href="{{ page._metadata.url.default }}">{{ page._metadata.url.default }}</a>
+          {% endif %}
+          <br>
+          <small>Last modified: {{ page._metadata.lastModified | readableDate }}</small>
+        </li>
+      {% endfor %}
+    </ul>
+    <p><a href="/pages/" class="btn">View All Pages →</a></p>
+  {% else %}
+    <p>No pages found. Configure your Optimizely Content Graph credentials to fetch content.</p>
+  {% endif %}
+</section>
