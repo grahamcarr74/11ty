@@ -5,6 +5,7 @@ This is a proof of concept demonstrating how to use [11ty](https://www.11ty.dev/
 ## Features
 
 - Static site generation with 11ty
+- **TypeScript templates** for type-safe templating
 - Content fetching from Optimizely Content Graph via GraphQL
 - Responsive design with modern CSS
 - Mock data fallback for development without Content Graph access
@@ -12,7 +13,7 @@ This is a proof of concept demonstrating how to use [11ty](https://www.11ty.dev/
 
 ## Prerequisites
 
-- Node.js 16.x or higher
+- Node.js 18.x or higher
 - npm or yarn
 - Optimizely SaaS CMS account with Content Graph access (optional for demo)
 
@@ -69,19 +70,21 @@ The static files will be generated in the `_site` directory.
 ```
 11ty-optimizely-contentgraph-poc/
 ├── src/
-│   ├── _data/              # Data files (GraphQL queries)
+│   ├── _data/                 # Data files (GraphQL queries)
 │   │   ├── graphql-client.js  # GraphQL client
 │   │   ├── pages.js           # Fetch pages
 │   │   └── articles.js        # Fetch articles
-│   ├── _includes/          # Layout templates
-│   │   └── base.njk           # Base layout
-│   ├── css/                # Stylesheets
+│   ├── _includes/             # Layout templates & helpers
+│   │   ├── base.11ty.ts       # Base layout template
+│   │   └── helpers.ts         # Shared types and helper functions
+│   ├── css/                   # Stylesheets
 │   │   └── style.css
-│   ├── index.njk           # Homepage
-│   ├── pages.njk           # Pages listing
-│   └── articles.njk        # Articles listing
-├── .eleventy.js            # 11ty configuration
-├── .env.example            # Example environment variables
+│   ├── index.11ty.ts          # Homepage
+│   ├── pages.11ty.ts          # Pages listing
+│   └── articles.11ty.ts       # Articles listing
+├── .eleventy.js               # 11ty configuration
+├── tsconfig.json              # TypeScript configuration
+├── .env.example               # Example environment variables
 ├── .gitignore
 ├── package.json
 └── README.md
@@ -102,7 +105,7 @@ module.exports = async function() {
 };
 ```
 
-This data is then accessible in templates as `{{ articles }}`.
+This data is then accessible in templates as the `articles` parameter.
 
 ### GraphQL Queries
 
@@ -113,15 +116,57 @@ The POC includes example queries for:
 
 You can customize these queries in `src/_data/pages.js` and `src/_data/articles.js` to match your content types.
 
-### Templates
+### TypeScript Templates
 
-Templates use Nunjucks (`.njk`) syntax to render the content:
+Templates use 11ty's JavaScript template format with TypeScript (`.11ty.ts` files):
 
-```njk
-{% for article in articles %}
-  <h2>{{ article.Title }}</h2>
-  <p>{{ article.Summary }}</p>
-{% endfor %}
+```typescript
+import { readableDate, Article } from './_includes/helpers';
+
+interface PageData {
+  articles: Article[];
+}
+
+export const data = {
+  layout: "base.11ty.ts",
+  title: "Articles"
+};
+
+export function render({ articles }: PageData): string {
+  return `
+    <h1>Articles</h1>
+    ${articles.map(article => `
+      <article>
+        <h2>${article.Title}</h2>
+        <p>${article.Summary}</p>
+        <small>Published: ${readableDate(article._metadata.published)}</small>
+      </article>
+    `).join('')}
+  `;
+}
+```
+
+### Layout Templates
+
+The base layout (`src/_includes/base.11ty.ts`) wraps all pages:
+
+```typescript
+interface BaseData {
+  title?: string;
+  content: string;
+}
+
+export function render(data: BaseData): string {
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <title>${data.title || "Default Title"}</title>
+</head>
+<body>
+  <main>${data.content}</main>
+</body>
+</html>`;
+}
 ```
 
 ## Customization
@@ -130,7 +175,8 @@ Templates use Nunjucks (`.njk`) syntax to render the content:
 
 1. Create a new data file in `src/_data/`, e.g., `products.js`
 2. Write a GraphQL query to fetch your content type
-3. Create a template in `src/` to display the data
+3. Add TypeScript interfaces to `src/_includes/helpers.ts`
+4. Create a template in `src/` to display the data
 
 **Example: `src/_data/products.js`**
 
@@ -158,6 +204,41 @@ module.exports = async function() {
   const data = await graphqlClient.query(query);
   return data.Content?.items || [];
 };
+```
+
+**Example: `src/products.11ty.ts`**
+
+```typescript
+interface Product {
+  Name: string;
+  Price: number;
+  Description: string;
+  _metadata: { url: { default?: string } };
+}
+
+interface ProductsData {
+  products: Product[];
+}
+
+export const data = {
+  layout: "base.11ty.ts",
+  title: "Products"
+};
+
+export function render({ products }: ProductsData): string {
+  return `
+    <h1>Products</h1>
+    <div class="product-grid">
+      ${products.map(product => `
+        <div class="product-card">
+          <h2>${product.Name}</h2>
+          <p class="price">$${product.Price}</p>
+          <p>${product.Description}</p>
+        </div>
+      `).join('')}
+    </div>
+  `;
+}
 ```
 
 ### Modifying Queries
@@ -219,15 +300,23 @@ Make sure to configure your environment variables in your hosting provider's set
 
 ### Build Errors
 
-1. Ensure Node.js version is 16.x or higher
+1. Ensure Node.js version is 18.x or higher
 2. Delete `node_modules` and run `npm install` again
 3. Check for syntax errors in custom data files
+4. Verify TypeScript types match your data structure
+
+### TypeScript Errors
+
+1. Check that interfaces in `helpers.ts` match your Content Graph response
+2. Ensure all required properties are defined in your types
+3. Run `npx tsc --noEmit` to check for type errors
 
 ## Resources
 
 - [11ty Documentation](https://www.11ty.dev/docs/)
+- [11ty JavaScript Templates](https://www.11ty.dev/docs/languages/javascript/)
 - [Optimizely Content Graph Documentation](https://docs.developers.optimizely.com/content-cloud/v1.5.0-content-graph/)
-- [Nunjucks Templating](https://mozilla.github.io/nunjucks/templating.html)
+- [TypeScript Documentation](https://www.typescriptlang.org/docs/)
 - [GraphQL Documentation](https://graphql.org/learn/)
 
 ## License
