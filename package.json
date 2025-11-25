@@ -3,20 +3,25 @@
   "version": "1.0.0",
   "description": "Proof of concept using 11ty with Optimizely Content Graph",
   "scripts": {
-    "start": "npx tsx node_modules/@11ty/eleventy/cmd.js --serve",
-    "build": "npx tsx node_modules/@11ty/eleventy/cmd.js"
+    "start": "npx tsx server.ts",
+    "build": "npx tsx node_modules/@11ty/eleventy/cmd.js",
+    "preview": "npx tsx src/preview/server.ts",
+    "dev:11ty": "npx tsx node_modules/@11ty/eleventy/cmd.js --serve"
   },
   "keywords": ["11ty", "optimizely", "contentgraph", "static-site"],
   "author": "",
   "license": "MIT",
   "devDependencies": {
     "@11ty/eleventy": "^2.0.1",
+    "@types/express": "^4.17.21",
     "@types/node": "^20.10.0",
     "tsx": "^4.6.0",
     "typescript": "^5.3.0"
   },
   "dependencies": {
     "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "http-proxy-middleware": "^2.0.6",
     "node-fetch": "^2.7.0"
   }
 }
