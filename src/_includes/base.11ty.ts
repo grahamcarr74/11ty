@@ -1,9 +1,17 @@
-<!DOCTYPE html>
+interface BaseData {
+  title?: string;
+  content: string;
+}
+
+export function render(data: BaseData): string {
+  const title = data.title || "Optimizely + 11ty POC";
+
+  return `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>{{ title | default("Optimizely + 11ty POC") }}</title>
+  <title>${title}</title>
   <link rel="stylesheet" href="/css/style.css">
 </head>
 <body>
@@ -21,7 +29,7 @@
   </header>
 
   <main class="container">
-    {{ content | safe }}
+    ${data.content}
   </main>
 
   <footer>
@@ -30,4 +38,5 @@
     </div>
   </footer>
 </body>
-</html>
+</html>`;
+}

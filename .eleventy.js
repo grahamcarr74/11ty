@@ -1,3 +1,4 @@
+/** @type {import('@11ty/eleventy').UserConfig} */
 module.exports = function(eleventyConfig) {
   // Pass through assets
   eleventyConfig.addPassthroughCopy("src/css");
@@ -11,6 +12,11 @@ module.exports = function(eleventyConfig) {
     });
   });
 
+  // Add TypeScript template support - tsx handles the compilation
+  eleventyConfig.addExtension("11ty.ts", {
+    key: "11ty.js",
+  });
+
   return {
     dir: {
       input: "src",
@@ -18,8 +24,8 @@ module.exports = function(eleventyConfig) {
       includes: "_includes",
       data: "_data"
     },
-    templateFormats: ["md", "njk", "html"],
-    markdownTemplateEngine: "njk",
-    htmlTemplateEngine: "njk"
+    templateFormats: ["md", "11ty.ts", "11ty.js", "html"],
+    markdownTemplateEngine: "11ty.js",
+    htmlTemplateEngine: "11ty.js"
   };
 };
