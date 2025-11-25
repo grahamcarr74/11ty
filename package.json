@@ -6,7 +6,10 @@
     "start": "npx tsx server.ts",
     "build": "npx tsx node_modules/@11ty/eleventy/cmd.js",
     "preview": "npx tsx src/preview/server.ts",
-    "dev:11ty": "npx tsx node_modules/@11ty/eleventy/cmd.js --serve"
+    "dev:11ty": "npx tsx node_modules/@11ty/eleventy/cmd.js --serve",
+    "webhook:register": "npx tsx scripts/register-webhook.ts",
+    "webhook:list": "npx tsx scripts/manage-webhooks.ts list",
+    "webhook:delete": "npx tsx scripts/manage-webhooks.ts delete"
   },
   "keywords": ["11ty", "optimizely", "contentgraph", "static-site"],
   "author": "",

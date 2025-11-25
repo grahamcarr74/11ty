@@ -1,5 +1,5 @@
 import 'dotenv/config';
-import express from 'express';
+import express, { Request, Response } from 'express';
 import { createProxyMiddleware } from 'http-proxy-middleware';
 import { spawn, ChildProcess } from 'child_process';
 import { previewApp } from './src/preview/server';
@@ -8,6 +8,73 @@ const PORT = parseInt(process.env.PORT || '8080', 10);
 const ELEVENTY_PORT = 8081;
 
 const app = express();
+
+// Parse JSON for webhook endpoint
+app.use(express.json());
+
+// Webhook endpoint for Optimizely Content Graph
+// Triggers 11ty rebuild when content is published
+let rebuildProcess: ChildProcess | null = null;
+let rebuildTimeout: NodeJS.Timeout | null = null;
+const REBUILD_DEBOUNCE_MS = 5000;
+
+app.post('/webhook/content-published', (req: Request, res: Response) => {
+  console.log('[Webhook] Received content published notification');
+  console.log('[Webhook] Payload:', JSON.stringify(req.body, null, 2));
+
+  // Optional: Validate webhook secret if configured
+  const webhookSecret = process.env.WEBHOOK_SECRET;
+  if (webhookSecret) {
+    const authHeader = req.headers['authorization'];
+    if (authHeader !== `Bearer ${webhookSecret}`) {
+      console.warn('[Webhook] Invalid webhook secret');
+      res.status(401).json({ error: 'Unauthorized' });
+      return;
+    }
+  }
+
+  // Debounce rebuilds
+  if (rebuildTimeout) {
+    console.log('[Webhook] Debouncing rebuild...');
+    clearTimeout(rebuildTimeout);
+  }
+
+  rebuildTimeout = setTimeout(() => {
+    triggerRebuild();
+    rebuildTimeout = null;
+  }, REBUILD_DEBOUNCE_MS);
+
+  res.json({ status: 'ok', message: 'Rebuild scheduled' });
+});
+
+function triggerRebuild(): void {
+  if (rebuildProcess) {
+    console.log('[Webhook] Rebuild already in progress, skipping...');
+    return;
+  }
+
+  console.log('[Webhook] Triggering 11ty rebuild...');
+
+  rebuildProcess = spawn('npm', ['run', 'build'], {
+    stdio: 'inherit',
+    shell: true,
+    cwd: process.cwd(),
+  });
+
+  rebuildProcess.on('close', (code) => {
+    if (code === 0) {
+      console.log('[Webhook] Rebuild completed successfully');
+    } else {
+      console.error(`[Webhook] Rebuild failed with exit code ${code}`);
+    }
+    rebuildProcess = null;
+  });
+
+  rebuildProcess.on('error', (err) => {
+    console.error('[Webhook] Rebuild error:', err);
+    rebuildProcess = null;
+  });
+}
 
 // Mount preview routes at root (previewApp already has /preview paths)
 app.use(previewApp);
@@ -100,6 +167,7 @@ async function main() {
     console.log(`  Preview:`);
     console.log(`    - By key: http://localhost:${PORT}/preview/{contentKey}`);
     console.log(`    - By URL: http://localhost:${PORT}/preview?url={path}`);
+    console.log(`  Webhook: http://localhost:${PORT}/webhook/content-published`);
     console.log(`  Static:  http://localhost:${PORT}/`);
     console.log(`\nWaiting for 11ty to start...`);
   });

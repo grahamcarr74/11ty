@@ -1,4 +1,5 @@
 import express, { Request, Response, NextFunction } from 'express';
+import { spawn, ChildProcess } from 'child_process';
 import { previewClient } from './graphql-client-preview';
 import {
   renderContent,
@@ -31,6 +32,73 @@ app.use((req: Request, res: Response, next: NextFunction) => {
 app.get('/preview/health', (req: Request, res: Response) => {
   res.json({ status: 'ok', mode: 'preview' });
 });
+
+// Webhook endpoint for Optimizely Content Graph
+// Triggers 11ty rebuild when content is published
+let rebuildProcess: ChildProcess | null = null;
+let rebuildTimeout: NodeJS.Timeout | null = null;
+const REBUILD_DEBOUNCE_MS = 5000; // Wait 5 seconds before rebuilding to batch multiple updates
+
+app.use(express.json()); // Parse JSON body for webhook payload
+
+app.post('/webhook/content-published', (req: Request, res: Response) => {
+  console.log('[Webhook] Received content published notification');
+  console.log('[Webhook] Payload:', JSON.stringify(req.body, null, 2));
+
+  // Optional: Validate webhook secret if configured
+  const webhookSecret = process.env.WEBHOOK_SECRET;
+  if (webhookSecret) {
+    const authHeader = req.headers['authorization'];
+    if (authHeader !== `Bearer ${webhookSecret}`) {
+      console.warn('[Webhook] Invalid webhook secret');
+      res.status(401).json({ error: 'Unauthorized' });
+      return;
+    }
+  }
+
+  // Debounce rebuilds - wait for rapid webhook calls to settle
+  if (rebuildTimeout) {
+    console.log('[Webhook] Debouncing rebuild...');
+    clearTimeout(rebuildTimeout);
+  }
+
+  rebuildTimeout = setTimeout(() => {
+    triggerRebuild();
+    rebuildTimeout = null;
+  }, REBUILD_DEBOUNCE_MS);
+
+  res.json({ status: 'ok', message: 'Rebuild scheduled' });
+});
+
+function triggerRebuild(): void {
+  // Don't start a new rebuild if one is already running
+  if (rebuildProcess) {
+    console.log('[Webhook] Rebuild already in progress, skipping...');
+    return;
+  }
+
+  console.log('[Webhook] Triggering 11ty rebuild...');
+
+  rebuildProcess = spawn('npm', ['run', 'build'], {
+    stdio: 'inherit',
+    shell: true,
+    cwd: process.cwd(),
+  });
+
+  rebuildProcess.on('close', (code) => {
+    if (code === 0) {
+      console.log('[Webhook] Rebuild completed successfully');
+    } else {
+      console.error(`[Webhook] Rebuild failed with exit code ${code}`);
+    }
+    rebuildProcess = null;
+  });
+
+  rebuildProcess.on('error', (err) => {
+    console.error('[Webhook] Rebuild error:', err);
+    rebuildProcess = null;
+  });
+}
 
 // API endpoint for fetching content fragment (for AJAX updates without full page refresh)
 app.get('/preview/api/content', async (req: Request, res: Response) => {
