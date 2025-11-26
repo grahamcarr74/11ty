@@ -57,6 +57,91 @@ export function renderArticle(article: ContentItem): string {
   });
 }
 
+// Render a composition component (for Experiences)
+function renderComponent(component: any): string {
+  if (!component) return '';
+
+  const key = component._metadata?.key || '';
+  const typeName = component.__typename || '';
+
+  switch (typeName) {
+    case 'HeadingElement':
+      return `<h2 ${epiBlockId(key)} ${epiEdit('headingText')}>${component.headingText || ''}</h2>`;
+
+    case 'ParagraphElement':
+      const html = component.text?.html || '';
+      return `<div ${epiBlockId(key)} ${epiEdit('text')}>${html}</div>`;
+
+    case 'ImageElement':
+      const src = component.imageLink?.url?.default || '';
+      const alt = component.altText || '';
+      return src ? `<img ${epiBlockId(key)} src="${src}" alt="${alt}" ${epiEdit('imageLink')} />` : '';
+
+    default:
+      // Generic fallback - show displayName
+      return component._metadata?.displayName
+        ? `<div ${epiBlockId(key)}>${component._metadata.displayName}</div>`
+        : '';
+  }
+}
+
+// Render Experience composition structure
+function renderComposition(composition: any): string {
+  if (!composition || !composition.nodes) return '';
+
+  let html = '';
+
+  for (const node of composition.nodes) {
+    if (node.nodeType === 'section' && node.nodes) {
+      // Section node - render its child nodes
+      html += `<section class="experience-section" data-key="${node.key}">`;
+      for (const childNode of node.nodes) {
+        if (childNode.component) {
+          html += renderComponent(childNode.component);
+        } else if (childNode.nodeType === 'row' && childNode.nodes) {
+          // Row container
+          html += '<div class="experience-row">';
+          for (const rowChild of childNode.nodes) {
+            if (rowChild.component) {
+              html += renderComponent(rowChild.component);
+            }
+          }
+          html += '</div>';
+        }
+      }
+      html += '</section>';
+    } else if (node.component) {
+      html += renderComponent(node.component);
+    }
+  }
+
+  return html;
+}
+
+export function renderExperienceContent(experience: ContentItem): string {
+  const key = experience._metadata.key;
+  const seo = experience.BlankExperienceSeoSettings;
+  const title = seo?.MetaTitle || experience._metadata.displayName;
+
+  let compositionHtml = '';
+  if (experience.composition) {
+    compositionHtml = renderComposition(experience.composition);
+  }
+
+  return `
+    <article class="experience" ${epiBlockId(key)}>
+      <h1>${title}</h1>
+      <p class="meta">
+        Type: ${experience._metadata.types.join(', ')}<br>
+        Last Modified: ${readableDate(experience._metadata.lastModified)}<br>
+        Version: ${experience._metadata.version || 'unknown'}
+      </p>
+      ${compositionHtml || '<p class="text-muted">No composition content available</p>'}
+    </article>
+    <p><a href="/" class="btn">Back to Home</a></p>
+  `;
+}
+
 export function renderPageContent(page: ContentItem): string {
   const key = page._metadata.key;
 
@@ -69,7 +154,7 @@ export function renderPageContent(page: ContentItem): string {
       </p>
       ${page.MainBody ? `<div class="content" ${epiEdit('MainBody')}>${page.MainBody}</div>` : ''}
     </article>
-    <p><a href="/" class="btn">← Back to Home</a></p>
+    <p><a href="/" class="btn">Back to Home</a></p>
   `;
 }
 
@@ -200,6 +285,8 @@ export function renderContentFragment(item: ContentItem): string {
 
   if (types.includes('BlogPostPage')) {
     return renderArticleContent(item);
+  } else if (types.includes('_Experience') || types.includes('BlankExperience')) {
+    return renderExperienceContent(item);
   } else {
     return renderPageContent(item);
   }

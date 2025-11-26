@@ -14,6 +14,8 @@ interface ContentItem {
     types: string[];
     published: string;
     lastModified: string;
+    version?: string;
+    status?: string;
     url: {
       default?: string;
     };
@@ -131,11 +133,14 @@ class OptimizelyPreviewClient {
   }
 
   async getContentByKey(contentKey: string): Promise<ContentItem | null> {
-    // Query for content by key - preview_token handles draft version access
+    // Query for content by key - request all versions, sorted by lastModified descending
+    // When using preview_token, Graph should include draft versions
+    // Include common content fields and Experience composition structure
     const query = `
       query GetContentByKey($key: String!) {
         _Content(
           where: { _metadata: { key: { eq: $key } } }
+          orderBy: { _metadata: { lastModified: DESC } }
           limit: 10
         ) {
           items {
@@ -147,9 +152,66 @@ class OptimizelyPreviewClient {
               published
               lastModified
               version
+              status
               url {
                 default
               }
+            }
+            ... on _IContent {
+              _type: __typename
+            }
+            ... on BlankExperience {
+              _experience: _metadata {
+                key
+              }
+              BlankExperienceSeoSettings {
+                MetaTitle
+                MetaDescription
+              }
+              composition {
+                key
+                nodeType
+                nodes {
+                  key
+                  nodeType
+                  ... on CompositionStructureNode {
+                    nodes {
+                      key
+                      nodeType
+                      ... on CompositionComponentNode {
+                        component {
+                          __typename
+                          _metadata {
+                            key
+                            displayName
+                            types
+                          }
+                          ... on HeadingElement {
+                            headingText
+                          }
+                          ... on ParagraphElement {
+                            text {
+                              html
+                            }
+                          }
+                          ... on ImageElement {
+                            altText
+                            imageLink {
+                              url {
+                                default
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+            ... on BlogPostPage {
+              Heading
+              ArticleAuthor
             }
           }
           total
@@ -168,22 +230,31 @@ class OptimizelyPreviewClient {
     const items = data?._Content?.items || [];
 
     // Log all returned versions for debugging
+    console.log('[Preview] Total items returned:', items.length);
     if (items.length > 0) {
       console.log('[Preview] Versions returned:', items.map(i => ({
         version: i._metadata?.version,
+        status: i._metadata?.status,
         lastModified: i._metadata?.lastModified,
       })));
     }
 
-    // Sort by lastModified descending to get the latest version
-    const sorted = items.sort((a, b) => {
-      const dateA = new Date(a._metadata?.lastModified || 0).getTime();
-      const dateB = new Date(b._metadata?.lastModified || 0).getTime();
-      return dateB - dateA;
-    });
+    // Prefer actual draft content (not "Previous" which is just an older published version)
+    // Draft statuses in Optimizely: Draft, CheckedOut, AwaitingApproval, Rejected, DelayedPublish
+    const draftStatuses = ['draft', 'checkedout', 'awaitingapproval', 'rejected', 'delayedpublish'];
+    const draft = items.find(i =>
+      i._metadata?.status && draftStatuses.includes(i._metadata.status.toLowerCase())
+    );
 
-    console.log('[Preview] Selected version:', sorted[0]?._metadata?.version);
-    return sorted[0] || null;
+    if (draft) {
+      console.log('[Preview] Selected draft version:', draft._metadata?.version, 'status:', draft._metadata?.status);
+      return draft;
+    }
+
+    // Fall back to most recent by lastModified (already sorted DESC)
+    // This will be the latest Published version
+    console.log('[Preview] No draft found, using most recent:', items[0]?._metadata?.version, 'status:', items[0]?._metadata?.status);
+    return items[0] || null;
   }
 
   async getContentByUrl(urlPath: string): Promise<ContentItem | null> {
@@ -198,11 +269,13 @@ class OptimizelyPreviewClient {
 
     console.log('[Preview] Searching for URL variants:', urlVariants);
 
-    // Generic query that works with any content type
+    // Generic query that works with any content type, sorted by lastModified
+    // Include composition structure for Experience types
     const query = `
       query GetContentByUrl($urls: [String!]!) {
         _Content(
           where: { _metadata: { url: { default: { in: $urls } } } }
+          orderBy: { _metadata: { lastModified: DESC } }
           limit: 10
         ) {
           items {
@@ -214,9 +287,60 @@ class OptimizelyPreviewClient {
               published
               lastModified
               version
+              status
               url {
                 default
               }
+            }
+            ... on BlankExperience {
+              BlankExperienceSeoSettings {
+                MetaTitle
+                MetaDescription
+              }
+              composition {
+                key
+                nodeType
+                nodes {
+                  key
+                  nodeType
+                  ... on CompositionStructureNode {
+                    nodes {
+                      key
+                      nodeType
+                      ... on CompositionComponentNode {
+                        component {
+                          __typename
+                          _metadata {
+                            key
+                            displayName
+                            types
+                          }
+                          ... on HeadingElement {
+                            headingText
+                          }
+                          ... on ParagraphElement {
+                            text {
+                              html
+                            }
+                          }
+                          ... on ImageElement {
+                            altText
+                            imageLink {
+                              url {
+                                default
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+            ... on BlogPostPage {
+              Heading
+              ArticleAuthor
             }
           }
           total
@@ -235,23 +359,30 @@ class OptimizelyPreviewClient {
     const items = data?._Content?.items || [];
 
     // Log all returned versions for debugging
+    console.log('[Preview] Total items returned:', items.length);
     if (items.length > 0) {
       console.log('[Preview] Versions returned:', items.map(i => ({
         version: i._metadata?.version,
+        status: i._metadata?.status,
         lastModified: i._metadata?.lastModified,
         url: i._metadata?.url?.default,
       })));
     }
 
-    // Sort by lastModified descending to get the latest version
-    const sorted = items.sort((a, b) => {
-      const dateA = new Date(a._metadata?.lastModified || 0).getTime();
-      const dateB = new Date(b._metadata?.lastModified || 0).getTime();
-      return dateB - dateA;
-    });
+    // Prefer actual draft content (not "Previous" which is just an older published version)
+    const draftStatuses = ['draft', 'checkedout', 'awaitingapproval', 'rejected', 'delayedpublish'];
+    const draft = items.find(i =>
+      i._metadata?.status && draftStatuses.includes(i._metadata.status.toLowerCase())
+    );
 
-    console.log('[Preview] Selected version:', sorted[0]?._metadata?.version);
-    return sorted[0] || null;
+    if (draft) {
+      console.log('[Preview] Selected draft version:', draft._metadata?.version, 'status:', draft._metadata?.status);
+      return draft;
+    }
+
+    // Fall back to most recent by lastModified (already sorted DESC)
+    console.log('[Preview] No draft found, using most recent:', items[0]?._metadata?.version, 'status:', items[0]?._metadata?.status);
+    return items[0] || null;
   }
 
   async listContent(limit: number = 10): Promise<ContentItem[]> {
