@@ -1,20 +1,30 @@
+import { Section } from '../molecules/Section';
+
 export interface BlankExperienceTemplateProps {
     title: string;
     types: string[];
     lastModified: string;
     key: string;
+    composition?: {
+        nodes: any[];
+    };
     editable?: {
         title?: string;
     };
 }
 
-export function BlankExperienceTemplate({ title, types, lastModified, key, editable = {} }: BlankExperienceTemplateProps): string {
-    const blockIdAttr = key ? `data-epi-block-id="${key}"` : '';
-    const titleEdit = editable.title ? `data-epi-edit="${editable.title}"` : '';
+export function BlankExperienceTemplate(props: BlankExperienceTemplateProps): string {
+    const compositionHtml = props.composition?.nodes?.map((node: any) => Section({
+        key: node.key,
+        rows: node.rows
+    })).join('') || '';
 
     return `
-    <div class="blank-experience" ${blockIdAttr}>
-        <h1 ${titleEdit}>${title}</h1>
+    <div class="blank-experience" data-epi-block-id="${props.key}">
+        <h1 ${props.editable?.title ? `data-epi-edit="${props.editable.title}"` : ''}>${props.title}</h1>
+        <div class="composition-area">
+            ${compositionHtml}
+        </div>
     </div>
     `;
 }
