@@ -1,3 +1,6 @@
+import { Header } from '../components/organisms/Header';
+import { Footer } from '../components/organisms/Footer';
+
 interface BaseData {
   title?: string;
   content: string;
@@ -5,6 +8,15 @@ interface BaseData {
 
 export function render(data: BaseData): string {
   const title = data.title || "Optimizely + 11ty POC";
+
+  const headerHtml = Header({
+    title: 'Optimizely + 11ty',
+    navItems: [
+      { text: 'Home', href: '/' }
+    ]
+  });
+
+  const footerHtml = Footer();
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -15,28 +27,13 @@ export function render(data: BaseData): string {
   <link rel="stylesheet" href="/css/style.css">
 </head>
 <body>
-  <header>
-    <nav>
-      <div class="container">
-        <h1><a href="/">Optimizely + 11ty</a></h1>
-        <ul>
-          <li><a href="/">Home</a></li>
-          <li><a href="/pages/">Pages</a></li>
-          <li><a href="/articles/">Articles</a></li>
-        </ul>
-      </div>
-    </nav>
-  </header>
+  ${headerHtml}
 
   <main class="container">
     ${data.content}
   </main>
 
-  <footer>
-    <div class="container">
-      <p>Powered by <a href="https://www.11ty.dev/" target="_blank">11ty</a> and <a href="https://www.optimizely.com/" target="_blank">Optimizely Content Graph</a></p>
-    </div>
-  </footer>
+  ${footerHtml}
 </body>
 </html>`;
 }

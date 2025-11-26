@@ -1,6 +1,9 @@
 import { render as renderBase } from '../_includes/base.11ty';
 import { readableDate, truncate } from '../_includes/helpers';
 import type { ContentItem } from './graphql-client-preview';
+import { BlankExperienceTemplate } from '../components/templates/BlankExperienceTemplate';
+import { Card } from '../components/molecules/Card';
+import { Button } from '../components/atoms/Button';
 
 // Context mode for Visual Builder - only render edit attributes in 'edit' mode
 let currentContextMode: 'edit' | 'preview' | null = null;
@@ -34,17 +37,31 @@ export function epiEditable(key: string, propertyName: string): string {
 export function renderArticleContent(article: ContentItem): string {
   const key = article._metadata.key;
 
+  const cardHtml = Card({
+    title: article.Title || article.Heading || article._metadata.displayName,
+    summary: article.Summary,
+    mainBody: article.MainBody,
+    published: article._metadata.published,
+    author: article.Author,
+    className: 'card article-item',
+    editable: {
+      blockId: key,
+      title: 'Title',
+      summary: 'Summary',
+      mainBody: 'MainBody',
+      author: 'Author'
+    }
+  });
+
+  const backButton = Button({
+    text: '← Back to Home',
+    href: '/',
+    className: 'btn'
+  });
+
   return `
-    <article class="card article-item" ${epiBlockId(key)}>
-      <h1 ${epiEdit('Title')}>${article.Title || article.Heading || article._metadata.displayName}</h1>
-      <p class="meta">
-        ${article.Author ? `<span ${epiEdit('Author')}>By ${article.Author}</span> | ` : ''}
-        Published: ${readableDate(article._metadata.published)}
-      </p>
-      ${article.Summary ? `<p class="summary" ${epiEdit('Summary')}>${article.Summary}</p>` : ''}
-      ${article.MainBody ? `<div class="content" ${epiEdit('MainBody')}>${article.MainBody}</div>` : ''}
-    </article>
-    <p><a href="/" class="btn">← Back to Home</a></p>
+    ${cardHtml}
+    <p>${backButton}</p>
   `;
 }
 
@@ -60,17 +77,15 @@ export function renderArticle(article: ContentItem): string {
 export function renderPageContent(page: ContentItem): string {
   const key = page._metadata.key;
 
-  return `
-    <article class="card" ${epiBlockId(key)}>
-      <h1 ${epiEdit('Title')}>${page.Title || page.Heading || page._metadata.displayName}</h1>
-      <p class="meta">
-        Type: ${page._metadata.types.join(', ')}<br>
-        Last Modified: ${readableDate(page._metadata.lastModified)}
-      </p>
-      ${page.MainBody ? `<div class="content" ${epiEdit('MainBody')}>${page.MainBody}</div>` : ''}
-    </article>
-    <p><a href="/" class="btn">← Back to Home</a></p>
-  `;
+  return BlankExperienceTemplate({
+    title: page.Title || page.Heading || page._metadata.displayName,
+    types: page._metadata.types,
+    lastModified: readableDate(page._metadata.lastModified),
+    key: key,
+    editable: {
+      title: 'Title'
+    }
+  });
 }
 
 export function renderPage(page: ContentItem): string {
@@ -82,11 +97,10 @@ export function renderPage(page: ContentItem): string {
   });
 }
 
-export function renderPreviewBanner(): string {
+export function renderPreviewBanner(isPublished: boolean): string {
   const cmsUrl = process.env.OPTIMIZELY_CMS_URL || '';
 
-  return `
-    ${cmsUrl ? `<script src="${cmsUrl}/util/javascript/communicationinjector.js"></script>` : '<!-- OPTIMIZELY_CMS_URL not configured -->'}
+  const bannerHtml = !isPublished ? `
     <style>
       .preview-banner {
         background: linear-gradient(90deg, #f59e0b, #d97706);
@@ -108,6 +122,11 @@ export function renderPreviewBanner(): string {
     <div class="preview-banner">
       PREVIEW MODE - This content is not yet published
     </div>
+  ` : '';
+
+  return `
+    ${cmsUrl ? `<script src="${cmsUrl}/util/javascript/communicationinjector.js"></script>` : '<!-- OPTIMIZELY_CMS_URL not configured -->'}
+    ${bannerHtml}
     <script>
       // Refresh content via AJAX without full page reload
       async function refreshContent(newPreviewToken) {
@@ -137,6 +156,14 @@ export function renderPreviewBanner(): string {
           // Update the content container without full page reload
           const container = document.getElementById('preview-content');
           if (container && data.html) {
+            // Safeguard: Prevent recursive injection if API returns full HTML or wrapper
+            if (data.html.includes('<html') || data.html.includes('<!DOCTYPE') || data.html.includes('<body') || 
+                data.html.includes('id="preview-content"') || data.html.includes('class="preview-banner"')) {
+              console.error('[Preview] API returned full HTML or wrapper, preventing recursive injection.');
+              console.error('[Preview] Received HTML start:', data.html.substring(0, 100));
+              return;
+            }
+            
             container.innerHTML = data.html;
 
             // Update browser URL with new token (without reload)
@@ -208,6 +235,7 @@ export function renderContentFragment(item: ContentItem): string {
 export function renderContent(item: ContentItem): string {
   const types = item._metadata.types || [];
   const contentFragment = renderContentFragment(item);
+  const isPublished = !!item._metadata.published;
 
   // Wrap content in a container div for AJAX updates
   const content = `<div id="preview-content">${contentFragment}</div>`;
@@ -226,7 +254,7 @@ export function renderContent(item: ContentItem): string {
   }
 
   // Inject preview banner after opening body tag
-  return html.replace('<body>', '<body>' + renderPreviewBanner());
+  return html.replace('<body>', '<body>' + renderPreviewBanner(isPublished));
 }
 
 export function renderError(message: string, details?: string): string {
