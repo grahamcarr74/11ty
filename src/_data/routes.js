@@ -36,6 +36,23 @@ module.exports = async function () {
                       columns: nodes {
                         ... on CompositionStructureNode {
                           key
+                          nodes {
+                            ... on CompositionComponentNode {
+                              component {
+                                __typename
+                                ... on ButtonBlock {
+                                  _metadata {
+                                    key
+                                    displayName
+                                  }
+                                  Text
+                                  Url {
+                                    default
+                                  }
+                                }
+                              }
+                            }
+                          }
                         }
                       }
                     }

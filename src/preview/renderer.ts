@@ -2,8 +2,6 @@ import { render as renderBase } from '../_includes/base.11ty';
 import { readableDate, truncate } from '../_includes/helpers';
 import type { ContentItem } from './graphql-client-preview';
 import { BlankExperienceTemplate } from '../components/templates/BlankExperienceTemplate';
-import { Card } from '../components/molecules/Card';
-import { Button } from '../components/atoms/Button';
 
 // Context mode for Visual Builder - only render edit attributes in 'edit' mode
 let currentContextMode: 'edit' | 'preview' | null = null;
@@ -34,45 +32,8 @@ export function epiEditable(key: string, propertyName: string): string {
   return `data-epi-block-id="${key}" data-epi-edit="${propertyName}"`;
 }
 
-export function renderArticleContent(article: ContentItem): string {
-  const key = article._metadata.key;
+// Legacy article rendering removed
 
-  const cardHtml = Card({
-    title: article.Title || article.Heading || article._metadata.displayName,
-    summary: article.Summary,
-    mainBody: article.MainBody,
-    published: article._metadata.published,
-    author: article.Author,
-    className: 'card article-item',
-    editable: {
-      blockId: key,
-      title: 'Title',
-      summary: 'Summary',
-      mainBody: 'MainBody',
-      author: 'Author'
-    }
-  });
-
-  const backButton = Button({
-    text: '← Back to Home',
-    href: '/',
-    className: 'btn'
-  });
-
-  return `
-    ${cardHtml}
-    <p>${backButton}</p>
-  `;
-}
-
-export function renderArticle(article: ContentItem): string {
-  const content = renderArticleContent(article);
-
-  return renderBase({
-    title: `${article.Title || article._metadata.displayName} - Preview`,
-    content,
-  });
-}
 
 export function renderPageContent(page: ContentItem): string {
   const key = page._metadata.key;
@@ -82,6 +43,7 @@ export function renderPageContent(page: ContentItem): string {
     types: page._metadata.types,
     lastModified: readableDate(page._metadata.lastModified),
     key: key,
+    composition: page.composition,
     editable: {
       title: 'Title'
     }
@@ -223,13 +185,7 @@ export function renderPreviewBanner(isPublished: boolean): string {
 
 // Render just the content fragment (for AJAX updates without full page refresh)
 export function renderContentFragment(item: ContentItem): string {
-  const types = item._metadata.types || [];
-
-  if (types.includes('BlogPostPage')) {
-    return renderArticleContent(item);
-  } else {
-    return renderPageContent(item);
-  }
+  return renderPageContent(item);
 }
 
 export function renderContent(item: ContentItem): string {
@@ -240,18 +196,10 @@ export function renderContent(item: ContentItem): string {
   // Wrap content in a container div for AJAX updates
   const content = `<div id="preview-content">${contentFragment}</div>`;
 
-  let html: string;
-  if (types.includes('BlogPostPage')) {
-    html = renderBase({
-      title: `${item.Title || item._metadata.displayName} - Preview`,
-      content,
-    });
-  } else {
-    html = renderBase({
-      title: `${item.Title || item._metadata.displayName} - Preview`,
-      content,
-    });
-  }
+  const html = renderBase({
+    title: `${item.Title || item._metadata.displayName} - Preview`,
+    content,
+  });
 
   // Inject preview banner after opening body tag
   return html.replace('<body>', '<body>' + renderPreviewBanner(isPublished));

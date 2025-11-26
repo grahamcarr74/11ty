@@ -151,6 +151,42 @@ class OptimizelyPreviewClient {
                 default
               }
             }
+            ... on BlankExperience {
+              composition {
+                nodes {
+                  ... on CompositionStructureNode {
+                    key
+                    rows: nodes {
+                      ... on CompositionStructureNode {
+                        key
+                        columns: nodes {
+                          ... on CompositionStructureNode {
+                            key
+                            nodes {
+                              ... on CompositionComponentNode {
+                                component {
+                                  __typename
+                                  ... on ButtonBlock {
+                                    _metadata {
+                                      key
+                                      displayName
+                                    }
+                                    Text
+                                    Url {
+                                      default
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
           }
           total
         }
@@ -216,6 +252,42 @@ class OptimizelyPreviewClient {
               version
               url {
                 default
+              }
+            }
+            ... on BlankExperience {
+              composition {
+                nodes {
+                  ... on CompositionStructureNode {
+                    key
+                    rows: nodes {
+                      ... on CompositionStructureNode {
+                        key
+                        columns: nodes {
+                          ... on CompositionStructureNode {
+                            key
+                            nodes {
+                              ... on CompositionComponentNode {
+                                component {
+                                  __typename
+                                  ... on ButtonBlock {
+                                    _metadata {
+                                      key
+                                      displayName
+                                    }
+                                    Text
+                                    Url {
+                                      default
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
               }
             }
           }
