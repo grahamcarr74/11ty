@@ -16,7 +16,7 @@ export interface BlankExperienceTemplateProps {
 export function BlankExperienceTemplate(props: BlankExperienceTemplateProps): string {
     const compositionHtml = props.composition?.nodes?.map((node: any) => Section({
         key: node.key,
-        rows: node.rows
+        rows: node.nodes // Map generic nodes to rows expected by Section
     })).join('') || '';
 
     return `

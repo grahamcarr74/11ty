@@ -10,7 +10,53 @@ module.exports = async function () {
 
   // Fetch all content items that have a URL
   // We fetch basic metadata and fields common to our known types
+  // Import models and query builder
+  // We need to import the TS models. Since we are in JS, we can try importing them if tsx handles it.
+  // If not, we might need to compile them or use a different approach.
+  // Assuming tsx handles .ts imports in .js files if run via tsx.
+  // Use require for TS files since we are running with tsx/ts-node
+  const { ButtonBlock } = require('../models/ButtonBlock.ts');
+  const { generateBlockFragments } = require('../utils/queryBuilder');
+
+  const models = { ButtonBlock };
+  const blockFragments = generateBlockFragments(models);
+
+  // Fetch all content items that have a URL
+  // We fetch basic metadata and fields common to our known types
   const query = `
+    ${blockFragments}
+
+    fragment ICompositionNode on ICompositionNode {
+      __typename
+      key
+      type
+      nodeType
+      layoutType
+      displayName
+      displayTemplateKey
+      displaySettings {
+        key
+        value
+      }
+      ... on CompositionStructureNode {
+        nodes @recursive(depth: 10)
+      }
+      ... on CompositionComponentNode {
+        nodeType
+        component {
+          ..._IComponent
+        }
+      }
+    }
+
+    fragment _IExperience on _IExperience {
+      composition {
+        nodes {
+          ...ICompositionNode
+        }
+      }
+    }
+
     query GetAllPages {
       _Content(
         where: { _metadata: { url: { default: { exist: true } } } }
@@ -30,43 +76,7 @@ module.exports = async function () {
             _metadata {
               key
             }
-            composition {
-              nodes {
-                ... on CompositionStructureNode {
-                  key
-                  # displayOption might be displaySettings or just not available on this type directly
-                  # trying displaySettings based on error hint, or omitting if unsure
-                  # rows are direct nodes, not items wrapper inside nodes
-                  rows: nodes {
-                    ... on CompositionStructureNode {
-                      key
-                      columns: nodes {
-                        ... on CompositionStructureNode {
-                          key
-                          nodes {
-                            ... on CompositionComponentNode {
-                              component {
-                                __typename
-                                ... on ButtonBlock {
-                                  _metadata {
-                                    key
-                                    displayName
-                                  }
-                                  Text
-                                  Url {
-                                    default
-                                  }
-                                }
-                              }
-                            }
-                          }
-                        }
-                      }
-                    }
-                  }
-                }
-              }
-            }
+            ..._IExperience
           }
         }
       }

@@ -9,7 +9,7 @@ export interface RowProps {
 export function Row(props: RowProps): string {
   const columnsHtml = props.columns?.map((col: any) => Column({
     key: col.key,
-    elements: col.nodes
+    elements: col.nodes // Map generic nodes to elements expected by Column
   })).join('') || '';
 
   return `

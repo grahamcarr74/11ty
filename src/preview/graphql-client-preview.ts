@@ -156,10 +156,10 @@ class OptimizelyPreviewClient {
                 nodes {
                   ... on CompositionStructureNode {
                     key
-                    rows: nodes {
+                    nodes {
                       ... on CompositionStructureNode {
                         key
-                        columns: nodes {
+                        nodes {
                           ... on CompositionStructureNode {
                             key
                             nodes {
@@ -259,10 +259,10 @@ class OptimizelyPreviewClient {
                 nodes {
                   ... on CompositionStructureNode {
                     key
-                    rows: nodes {
+                    nodes {
                       ... on CompositionStructureNode {
                         key
-                        columns: nodes {
+                        nodes {
                           ... on CompositionStructureNode {
                             key
                             nodes {

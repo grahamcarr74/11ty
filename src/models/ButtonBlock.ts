@@ -10,7 +10,7 @@ export const ButtonBlock = contentType({
             displayName: 'Text',
         },
         Url: {
-            type: 'string', // Or 'url' if supported, but string is safe for now
+            type: 'url',
             displayName: 'Url',
         },
     },
