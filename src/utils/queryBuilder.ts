@@ -1,4 +1,6 @@
-function generateFields(properties) {
+import { ContentType } from '@optimizely/cms-sdk';
+
+export function generateFields(properties: Record<string, any>): string {
     return Object.entries(properties).map(([key, prop]) => {
         if (prop.type === 'string') {
             return key;
@@ -14,9 +16,9 @@ function generateFields(properties) {
     }).join('\n');
 }
 
-function generateBlockFragments(models) {
-    const fragments = [];
-    const componentFragmentParts = [];
+export function generateBlockFragments(models: Record<string, any>): string {
+    const fragments: string[] = [];
+    const componentFragmentParts: string[] = [];
 
     for (const model of Object.values(models)) {
         if (model.baseType === '_block') {
@@ -43,5 +45,3 @@ function generateBlockFragments(models) {
 
     return [componentFragment, ...fragments].join('\n');
 }
-
-module.exports = { generateBlockFragments };

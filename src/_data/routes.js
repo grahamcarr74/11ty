@@ -16,7 +16,7 @@ module.exports = async function () {
   // Assuming tsx handles .ts imports in .js files if run via tsx.
   // Use require for TS files since we are running with tsx/ts-node
   const { ButtonBlock } = require('../models/ButtonBlock.ts');
-  const { generateBlockFragments } = require('../utils/queryBuilder');
+  const { generateBlockFragments } = require('../utils/queryBuilder.ts');
 
   const models = { ButtonBlock };
   const blockFragments = generateBlockFragments(models);
