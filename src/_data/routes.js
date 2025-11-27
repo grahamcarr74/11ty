@@ -1,6 +1,13 @@
-const graphqlClient = require('./graphql-client');
+require('dotenv').config();
 
 module.exports = async function () {
+  // Import SDK dynamically
+  const { GraphClient } = await import('@optimizely/cms-sdk');
+
+  const client = new GraphClient(process.env.OPTIMIZELY_GRAPH_SINGLE_KEY, {
+    graphUrl: process.env.OPTIMIZELY_GRAPH_GATEWAY || 'https://cg.optimizely.com/content/v2'
+  });
+
   // Fetch all content items that have a URL
   // We fetch basic metadata and fields common to our known types
   const query = `
@@ -67,7 +74,7 @@ module.exports = async function () {
   `;
 
   try {
-    const data = await graphqlClient.query(query);
+    const data = await client.request(query);
 
     if (!data || !data._Content || !data._Content.items) {
       console.warn('No pages found in Optimizely Graph.');
