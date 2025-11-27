@@ -1,8 +1,8 @@
 {
   "compilerOptions": {
     "target": "ES2022",
-    "module": "CommonJS",
-    "moduleResolution": "node",
+    "module": "esnext",
+    "moduleResolution": "bundler",
     "esModuleInterop": true,
     "strict": true,
     "skipLibCheck": true,
@@ -11,8 +11,17 @@
     "declaration": false,
     "outDir": "./dist",
     "rootDir": "./src",
-    "lib": ["ES2022"]
+    "lib": [
+      "ES2022"
+    ]
   },
-  "include": ["src/**/*", ".eleventy.ts"],
-  "exclude": ["node_modules", "_site", "dist"]
+  "include": [
+    "src/**/*",
+    ".eleventy.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "_site",
+    "dist"
+  ]
 }
