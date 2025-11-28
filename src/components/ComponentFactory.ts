@@ -1,5 +1,6 @@
 import { BlankExperienceTemplate } from './templates/BlankExperienceTemplate';
 import { ButtonBlock } from './atoms/ButtonBlock';
+import { TextBlock } from './atoms/TextBlock';
 import { readableDate } from '../_includes/helpers';
 
 export interface ContentItem {
@@ -54,6 +55,13 @@ export function ComponentFactory(content: ContentItem): string {
             url: content.Url?.default || '#',
             key: content._metadata.key,
             displayName: content._metadata.displayName
+        });
+    }
+
+    if (typename === 'TextBlock') {
+        return TextBlock({
+            text: content.Text || '',
+            key: content._metadata.key
         });
     }
 
